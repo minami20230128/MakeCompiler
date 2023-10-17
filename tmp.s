@@ -1,6 +1,6 @@
-123
 .intel_syntax noprefix
 .globl main
 main:
-  mov rax, 123
+  mov rax, 1+2
+  add rax, 2
   ret
