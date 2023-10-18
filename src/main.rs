@@ -8,21 +8,19 @@ fn main(){
     }
 
     let arg: Vec<char> = args[1].chars().collect::<Vec<char>>();
-    let mut itr = arg.iter();
 
     println!(".intel_syntax noprefix");
     println!(".globl main");
     println!("main:");
-    println!("  mov rax, {}", itr.next().unwrap().to_string());
+    println!("  mov rax, {}", arg[0]);
     
-    while(itr.next() != None){
-        if(itr.next().unwrap().to_string() == "+"){
-            println!("  add rax, {}", itr.next().unwrap().to_string());
+    for n in (1..arg.len()).step_by(2) {
+        if(arg[n].to_string() == "+".to_string()){
+            println!("  add rax, {}", arg[n + 1].to_string());
             continue;
         }
-
-        if(itr.next().unwrap().to_string() == "-"){
-            println!("  sub rax, {}", itr.next().unwrap().to_string());
+        else if(arg[n].to_string() == "-".to_string()){
+            println!("  sub rax, {}", arg[n + 1].to_string());
             continue;
         }
 
