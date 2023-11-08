@@ -1,4 +1,5 @@
 use std::env;
+use std::sync::RwLock;
 
 enum token_kind{
     TK_RESERVED,
@@ -7,14 +8,13 @@ enum token_kind{
 }
 
 struct token{
-
-}
-
-struct token{
     token_kind kind,
     int val,
     Vec<char> str
 }
+
+static tokens: RwLock<token> = RwLock::new(token:Vec::new());
+static mut idx i32 = 0;
 
 fn error(Vec<char> str){
 
@@ -25,6 +25,9 @@ fn consume(char op) -> bool {
         return false;
     }
 
+    unsafe{
+        idx++;
+    }
     token = token.next;
     return true;
 }
