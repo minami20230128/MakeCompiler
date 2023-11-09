@@ -16,8 +16,8 @@ struct token{
 static tokens: RwLock<token> = RwLock::new(token:Vec::new());
 static mut idx i32 = 0;
 
-fn error(Vec<char> str){
-
+fn error(str& message){
+    eprintln!(message);
 }
 
 fn consume(char op) -> bool {
@@ -28,7 +28,7 @@ fn consume(char op) -> bool {
     unsafe{
         idx++;
     }
-    token = token.next;
+
     return true;
 }
 
@@ -37,7 +37,9 @@ fn expect(char op){
         error("数ではありません");
     }
 
-    token = token.next;
+    unsafe{
+        idx++;
+    }
 }
 
 fn expect_number(){
@@ -46,7 +48,9 @@ fn expect_number(){
     }
 
     let val = token.val;
-    token = token.next;
+    unsafe{
+        idx++;
+    }
     return val;
 }
 
@@ -61,7 +65,7 @@ fn new_token(token_kind kind, Vec<char> str){
     }
 }
 
-token tokenize(Vec<char> str){
+token tokenize(Vec<char> str) -> Vec<token> cur{
     Vec<token> cur;
     for n in (str.len()){
         if(str[n].is_whitespace()){
@@ -81,5 +85,34 @@ token tokenize(Vec<char> str){
         error("トークナイズできません");
     }
 
-    cur.push(new_token(TK_EOF, str[n]));
+    cur.push(new_token(TK_EOF, ""));
+}
+
+fn main(){
+    let args : Vec<String> = env::args().collect();
+
+    if(args.len() != 2){
+        eprintln!("Application error");
+    }
+
+    let arg: Vec<char> = args[1].chars().collect::<Vec<char>>();
+    let tokens = tokenize(arg);
+
+    println!(".intel_syntax noprefix");
+    println!(".globl main");
+    println!("main:");
+    println!("  mov rax, {}", arg[0]);
+    
+    while(!at_eof()){
+        if(consume('+')){
+            println!("  add rax, {}", expect_number());
+            continue;
+        }
+
+        expect('-');
+        println!("  sub rax, {}", expect_number());
+        continue;
+    }
+
+    println!("  ret");
 }
