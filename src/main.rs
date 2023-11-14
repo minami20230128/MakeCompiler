@@ -1,15 +1,17 @@
 use std::env;
 use std::sync::RwLock;
 
-enum token_kind{
-    TK_RESERVED,
-    TK_NUM,
-    TK_EOF
+#[derive(Debug, Copy, Clone)]
+enum TokenKind{
+    TkReserved,
+    TkNum,
+    TkEof
 }
 
-struct token{
-    kind : token_kind,
-    val : i32,
+#[derive(Debug, Copy, Clone)]
+struct Token{
+    kind : TokenKind,
+    val : u32,
     str : char
 }
 
@@ -17,22 +19,22 @@ fn error(message : &str){
     eprintln!("{}", message);
 }
 
-fn consume(token : &token, op : char) -> bool {
-    if(!matches!(token.kind, token_kind::TK_RESERVED) || token.str != op){
+fn consume(token : &Token, op : char) -> bool {
+    if !matches!(token.kind, TokenKind::TkReserved) || token.str != op {
         return false;
     }
 
     return true;
 }
 
-fn expect(token : &token, op : char){
-    if(!matches!(token.kind, token_kind::TK_NUM)){
+fn expect(token : &Token, op : char){
+    if !matches!(token.kind, TokenKind::TkNum) {
         error("数ではありません");
     }
 }
 
-fn expect_number(token : &token) -> i32{
-    if(!matches!(token.kind, token_kind::TK_NUM)){
+fn expect_number(token : &Token) -> u32{
+    if !matches!(token.kind, TokenKind::TkNum) {
         error("数ではありません");
     }
 
@@ -40,40 +42,40 @@ fn expect_number(token : &token) -> i32{
     return val;
 }
 
-fn at_eof(token : &token) -> bool {
-    return matches!(token.kind, token_kind::TK_EOF);
+fn at_eof(token : &Token) -> bool {
+    return matches!(token.kind, TokenKind::TkEof);
 }
 
-fn new_token(kind : &token_kind, str : char) -> token{
-    let token = token{
+fn new_token(kind : &TokenKind, val : u32, str : char) -> Token{
+    let token = Token{
         kind : *kind,
-        val : 0,
+        val : val,
         str : str
     };
 
     return token;
 }
 
-fn tokenize(str : Vec<char>) -> Vec<token> {
-    let mut cur: Vec<token> = Vec::new();
-    for n in (1..str.len()){
-        if(str[n].is_whitespace()){
+fn tokenize(str : Vec<char>) -> Vec<Token> {
+    let mut cur: Vec<Token> = Vec::new();
+    for n in 0..str.len() {
+        if str[n].is_whitespace(){
             continue;
         }
 
-        if(str[n] == '+' || str[n] == '-'){
-            cur.push(new_token(&token_kind::TK_RESERVED, str[n]));
+        if str[n] == '+' || str[n] == '-' {
+            cur.push(new_token(&TokenKind::TkReserved, 0, str[n]));
             continue;
         }
 
         let result = str[n].to_digit(10);
         match result {
-            Some(i) => cur.push(new_token(&token_kind::TK_NUM, str[n])),
+            Some(i) => cur.push(new_token(&TokenKind::TkNum, i, str[n])),
             None => error("トークナイズできません"),
         }
     }
 
-    cur.push(new_token(&token_kind::TK_EOF, '\0'));
+    cur.push(new_token(&TokenKind::TkEof, 0, '\0'));
 
     return cur;
 }
@@ -81,7 +83,7 @@ fn tokenize(str : Vec<char>) -> Vec<token> {
 fn main(){
     let args : Vec<String> = env::args().collect();
 
-    if(args.len() != 2){
+    if args.len() != 2 {
         eprintln!("Application error");
     }
 
@@ -92,18 +94,19 @@ fn main(){
     println!(".intel_syntax noprefix");
     println!(".globl main");
     println!("main:");
-    println!("  mov rax, {}", arg[0]);
+    println!("  mov rax, {}", tokens[idx].val);
+    idx += 1;
     
-    while(!at_eof(&tokens[idx])){
-        if(consume(&tokens[idx], '+')){
-            println!("  add rax, {}", expect_number(&tokens[idx]));
-            idx += 1;
+    while !at_eof(&tokens[idx]) {
+        if consume(&tokens[idx], '+') {
+            println!("  add rax, {}", expect_number(&tokens[idx + 1]));
+            idx += 2;
             continue;
         }
 
         expect(&tokens[idx], '-');
-        println!("  sub rax, {}", expect_number(&tokens[idx]));
-        idx += 1;
+        println!("  sub rax, {}", expect_number(&tokens[idx + 1]));
+        idx += 2;
         continue;
     }
 
