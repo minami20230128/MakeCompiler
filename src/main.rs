@@ -13,25 +13,27 @@ enum NodeKind{
 #[derive(Debug, Clone)]
 struct Node{
     kind : NodeKind,
-    right:Box<Option<Node>>,
-    left:Box<Option<Node>>,
+    right : Box<Option<Node>>,
+    left : Box<Option<Node>>,
     val : u32
 }
 
 fn new_node(kind : NodeKind, lhs : Node, rhs : Node) -> Node{
     let node = Node{
         kind : kind,
-        left : lhs,
-        right : rhs,
+        left : Box::new(Some(lhs)),
+        right : Box::new(Some(rhs)),
         val : 0
     };
+
+    return node;
 }
 
 fn new_node_num(kind : NodeKind, val : u32) -> Node{
     let node = Node{
         kind : kind,
-        left : None,
-        right : None,
+        left : Box::new(None),
+        right : Box::new(None),
         val : val
     };
 
@@ -39,14 +41,14 @@ fn new_node_num(kind : NodeKind, val : u32) -> Node{
 }
 
 
-fn expr(tokens : Vec<Token>, idx : usize) -> Node{
-    let mut node = mul(tokens, idx);
+fn expr(tokens : &Vec<Token>, idx : usize) -> Node{
+    let mut node = mul(&tokens, idx);
     loop {
         if consume(&tokens[idx], '+'){
-            node = new_node(NodeKind::NdAdd, node, mul(tokens, idx));
+            node = new_node(NodeKind::NdAdd, node, mul(&tokens, idx));
         }
         else if consume(&tokens[idx], '-'){
-            node = new_node(NodeKind::NdSub, node, mul(tokens, idx));
+            node = new_node(NodeKind::NdSub, node, mul(&tokens, idx));
         }
         else{
             return node;
@@ -54,13 +56,13 @@ fn expr(tokens : Vec<Token>, idx : usize) -> Node{
     }
 }
 
-fn mul(tokens : Vec<Token>, idx : usize) -> Node{
+fn mul(tokens : &Vec<Token>, idx : usize) -> Node{
     let mut node = primary(tokens, idx);
     loop{
         if(consume(&tokens[idx], '*')){
-            node = new_node(NodeKind::NdMul, node, primary(tokens, idx));
+            node = new_node(NodeKind::NdMul, node, primary(&tokens, idx));
         }else if consume(&tokens[idx], '/'){
-            node = new_node(NodeKind::NdDiv, node, primary(tokens, idx));
+            node = new_node(NodeKind::NdDiv, node, primary(&tokens, idx));
         }
         else{
             return node;
@@ -68,9 +70,9 @@ fn mul(tokens : Vec<Token>, idx : usize) -> Node{
     }
 }
 
-fn primary(tokens : Vec<Token>, idx : usize) -> Node{
+fn primary(tokens : &Vec<Token>, idx : usize) -> Node{
     if consume(&tokens[idx], '('){
-        let node = expr(tokens, idx);
+        let node = expr(&tokens, idx);
         expect(&tokens[idx], '-');
         return node;
     }
@@ -156,6 +158,37 @@ fn tokenize(str : Vec<char>) -> Vec<Token> {
     cur.push(new_token(&TokenKind::TkEof, 0, '\0'));
 
     return cur;
+}
+
+fn gen(node : &Node){
+    if matches!(node.kind, NodeKind::NdNum){
+        println!("  push {}", node.val);
+        return;
+    }
+
+    match *node.left {
+        Some(i) => gen(&i),
+        None => ()
+    }
+
+    match *node.right {
+        Some(i) => gen(&i),
+        None => ()
+    }
+
+    println!("  pop rdi");
+    println!("  pop rax");
+
+    match node.kind {
+        NodeKind::NdAdd => println!("   add rax, rdi"),
+        NodeKind::NdSub => println!("   sub rax, rdi"),
+        NodeKind::NdMul => println!("   imul rax, rdi"),
+        NodeKind::NdDiv => {println!("cqo");
+                            println!("  idiv rdi");}
+        NodeKind::NdNum => ()
+    }
+
+    println!("  push rax");
 }
 
 fn main(){
