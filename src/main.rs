@@ -2,6 +2,84 @@ use std::env;
 use std::sync::RwLock;
 
 #[derive(Debug, Copy, Clone)]
+enum NodeKind{
+    NdAdd,
+    NdSub,
+    NdMul,
+    NdDiv,
+    NdNum
+}
+
+#[derive(Debug, Clone)]
+struct Node{
+    kind : NodeKind,
+    right:Box<Option<Node>>,
+    left:Box<Option<Node>>,
+    val : u32
+}
+
+fn new_node(kind : NodeKind, lhs : Node, rhs : Node) -> Node{
+    let node = Node{
+        kind : kind,
+        left : lhs,
+        right : rhs,
+        val : 0
+    };
+}
+
+fn new_node_num(kind : NodeKind, val : u32) -> Node{
+    let node = Node{
+        kind : kind,
+        left : None,
+        right : None,
+        val : val
+    };
+
+    return node;
+}
+
+
+fn expr(tokens : Vec<Token>, idx : usize) -> Node{
+    let mut node = mul(tokens, idx);
+    loop {
+        if consume(&tokens[idx], '+'){
+            node = new_node(NodeKind::NdAdd, node, mul(tokens, idx));
+        }
+        else if consume(&tokens[idx], '-'){
+            node = new_node(NodeKind::NdSub, node, mul(tokens, idx));
+        }
+        else{
+            return node;
+        }
+    }
+}
+
+fn mul(tokens : Vec<Token>, idx : usize) -> Node{
+    let mut node = primary(tokens, idx);
+    loop{
+        if(consume(&tokens[idx], '*')){
+            node = new_node(NodeKind::NdMul, node, primary(tokens, idx));
+        }else if consume(&tokens[idx], '/'){
+            node = new_node(NodeKind::NdDiv, node, primary(tokens, idx));
+        }
+        else{
+            return node;
+        }
+    }
+}
+
+fn primary(tokens : Vec<Token>, idx : usize) -> Node{
+    if consume(&tokens[idx], '('){
+        let node = expr(tokens, idx);
+        expect(&tokens[idx], '-');
+        return node;
+    }
+
+    return new_node_num(NodeKind::NdNum, expect_number(&tokens[idx]));
+}
+
+
+#[derive(Debug, Copy, Clone)]
 enum TokenKind{
     TkReserved,
     TkNum,
